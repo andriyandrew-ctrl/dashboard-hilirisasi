@@ -2,7 +2,32 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Hilirisasi Dashboard", layout="wide")
+st.markdown("""
+    <style>
+    /* Mengubah font seluruh aplikasi */
+    html, body, [class*="css"]  {
+        font-family: 'Helvetica', sans-serif;
+    }
+    
+    /* Mengubah warna judul (H1) */
+    h1 {
+        color: #1E3A8A;
+        font-weight: bold;
+    }
+    
+    /* Mengubah tampilan Metric Card agar lebih cantik */
+    [data-testid="stMetricValue"] {
+        font-size: 30px;
+        color: #10B981;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.set_page_config(
+    page_title="Dashboard Hilirisasi",
+    page_icon="📊", # Bisa pake emoji atau link gambar
+    layout="wide"
+)
 
 @st.cache_data
 def load_data():
@@ -31,8 +56,10 @@ try:
     st.write("---")
     
     # Chart Row
-    fig = px.bar(df_f, x='Revenue', y='Jenis Produk', color='Entitas', orientation='h', title=f"Revenue Produk - {nama_bulan[sel_bulan]}")
-    st.plotly_chart(fig, use_container_width=True)
+fig = px.bar(df_f, x='Revenue', y='Jenis Produk', 
+             color='Entitas', 
+             color_discrete_sequence=px.colors.qualitative.Prism, # Mengubah skema warna
+             template="plotly_white") # Membuat background grafik jadi putih bersih
 
 except Exception as e:
     st.error(f"Gagal memuat data. Pastikan file Excel sudah ada di GitHub. Error: {e}")
