@@ -2,64 +2,126 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# 1. KONFIGURASI HALAMAN & TAMPILAN (CSS)
+st.set_page_config(
+    page_title="Dashboard Monitoring Hilirisasi",
+    page_icon="📊",
+    layout="wide"
+)
+
+# Custom CSS untuk mempercantik tampilan
 st.markdown("""
     <style>
-    /* Mengubah font seluruh aplikasi */
-    html, body, [class*="css"]  {
-        font-family: 'Helvetica', sans-serif;
+    .main {
+        background-color: #f5f7f9;
     }
-    
-    /* Mengubah warna judul (H1) */
+    .stMetric {
+        background-color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     h1 {
         color: #1E3A8A;
-        font-weight: bold;
-    }
-    
-    /* Mengubah tampilan Metric Card agar lebih cantik */
-    [data-testid="stMetricValue"] {
-        font-size: 30px;
-        color: #10B981;
+        font-family: 'Helvetica', sans-serif;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.set_page_config(
-    page_title="Dashboard Hilirisasi",
-    page_icon="📊", # Bisa pake emoji atau link gambar
-    layout="wide"
-)
-
+# 2. FUNGSI LOAD DATA
 @st.cache_data
 def load_data():
-    # Nama file harus sama dengan yang diupload ke GitHub
+    # Pastikan nama file ini sesuai dengan yang Anda upload ke GitHub
     file_name = 'KBK_Hilirisasi 2025 Full Year (Sent).xlsx'
-    df = pd.read_excel(file_name, sheet_name='Realisasi Hilirisasi', skiprows=6)
-    df = df[['Periode', 'Entitas', 'Jenis Produk', 'Qty', 'Revenue', 'Gross Profit']].dropna(subset=['Periode'])
-    return df
+    try:
+        # Load data, lewati header atas yang tidak perlu (skiprows=6)
+        df = pd.read_excel(file_name, sheet_name='Realisasi Hilirisasi', skiprows=6)
+        
+        # Bersihkan data: Hapus baris kosong dan pastikan kolom numerik benar
+        df = df.dropna(subset=['Periode', 'Jenis Produk'])
+        cols_to_fix = ['Qty', 'Revenue', 'Gross Profit']
+        for col in cols_to_fix:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            
+        return df
+    except Exception as e:
+        st.error(f"Gagal membaca file: {e}")
+        return pd.DataFrame()
 
-try:
-    df = load_data()
-    st.title("📊 Monitoring Hilirisasi 2025")
+# 3. LOGIKA UTAMA APLIKASI
+df = load_data()
+
+if not df.empty:
+    st.title("📊 Monitoring Realisasi Hilirisasi")
     
-    list_bulan = sorted(df['Periode'].unique().astype(int))
-    nama_bulan = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"Mei", 6:"Jun", 7:"Jul", 8:"Agt", 9:"Sep", 10:"Okt", 11:"Nov", 12:"Des"}
-    sel_bulan = st.sidebar.selectbox("Pilih Bulan", list_bulan, format_func=lambda x: nama_bulan[x])
-
-    df_f = df[df['Periode'] == sel_bulan]
-
-    # Metrics Row
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Tonase", f"{df_f['Qty'].sum():,.2f} Ton")
-    c2.metric("Total Revenue", f"Rp {df_f['Revenue'].sum():,.0f}")
-    c3.metric("Total Gross Profit", f"Rp {df_f['Gross Profit'].sum():,.0f}")
-
-    st.write("---")
+    # --- SIDEBAR FILTER ---
+    st.sidebar.header("📁 Filter Laporan")
     
-    # Chart Row
-fig = px.bar(df_f, x='Revenue', y='Jenis Produk', 
-             color='Entitas', 
-             color_discrete_sequence=px.colors.qualitative.Prism, # Mengubah skema warna
-             template="plotly_white") # Membuat background grafik jadi putih bersih
+    # Filter Tahun (Otomatis mendeteksi tahun yang ada di Excel)
+    if 'Tahun' in df.columns:
+        list_tahun = sorted(df['Tahun'].unique().astype(int), reverse=True)
+    else:
+        # Jika kolom Tahun belum ada, default ke 2025
+        df['Tahun'] = 2025
+        list_tahun = [2025]
+        
+    sel_tahun = st.sidebar.selectbox("📅 Pilih Tahun", list_tahun)
+    
+    # Filter Bulan
+    nama_bulan = {
+        1:"Januari", 2:"Februari", 3:"Maret", 4:"April", 5:"Mei", 6:"Juni",
+        7:"Juli", 8:"Agustus", 9:"September", 10:"Oktober", 11:"November", 12:"Desember"
+    }
+    df_tahun = df[df['Tahun'] == sel_tahun]
+    list_bulan = sorted(df_tahun['Periode'].unique().astype(int))
+    sel_bulan = st.sidebar.selectbox("📆 Pilih Bulan", list_bulan, format_func=lambda x: nama_bulan[x])
 
-except Exception as e:
-    st.error(f"Gagal memuat data. Pastikan file Excel sudah ada di GitHub. Error: {e}")
+    # Data Akhir Terfilter
+    df_f = df_tahun[df_tahun['Periode'] == sel_bulan].copy()
+
+    if not df_f.empty:
+        # --- SECTION 1: METRIK TOTAL ---
+        st.subheader(f"📍 Ringkasan Bulan {nama_bulan[sel_bulan]} {sel_tahun}")
+        m1, m2, m3 = st.columns(3)
+        
+        m1.metric("Total Tonase", f"{df_f['Qty'].sum():,.2f} Ton")
+        m2.metric("Total Revenue", f"Rp {df_f['Revenue'].sum():,.0f}")
+        m3.metric("Total Gross Profit", f"Rp {df_f['Gross Profit'].sum():,.0f}")
+
+        st.divider()
+
+        # --- SECTION 2: HIGHLIGHT TERTINGGI ---
+        st.subheader("🏆 Pencapaian Tertinggi")
+        c1, c2, c3 = st.columns(3)
+        
+        # Cari baris dengan revenue & qty tertinggi
+        idx_rev = df_f['Revenue'].idxmax()
+        idx_qty = df_f['Qty'].idxmax()
+        
+        with c1:
+            st.info(f"**Produk Revenue Terbesar:**\n\n{df_f.loc[idx_rev, 'Jenis Produk']}  \n(Rp {df_f.loc[idx_rev, 'Revenue']:,.0f})")
+        with c2:
+            st.success(f"**Produk Tonase Terbesar:**\n\n{df_f.loc[idx_qty, 'Jenis Produk']}  \n({df_f.loc[idx_qty, 'Qty']:,.2f} Ton)")
+        with c3:
+            st.warning(f"**Entitas (Penjual) Terbaik:**\n\n{df_f.loc[idx_rev, 'Entitas']}  \n(Berdasarkan Revenue)")
+
+        st.write("") 
+
+        # --- SECTION 3: GRAFIK ANALISIS ---
+        st.subheader("📈 Analisis Visual")
+        col_chart1, col_chart2 = st.columns(2)
+        
+        with col_chart1:
+            fig_rev = px.bar(df_f.sort_values('Revenue'), x='Revenue', y='Jenis Produk', 
+                             color='Entitas', orientation='h', title="Revenue per Produk",
+                             text_auto='.2s', color_discrete_sequence=px.colors.qualitative.Bold)
+            st.plotly_chart(fig_rev, use_container_width=True)
+
+        with col_chart2:
+            fig_qty = px.bar(df_f.sort_values('Qty'), x='Qty', y='Jenis Produk', 
+                             color='Entitas', orientation='h', title="Tonase per Produk",
+                             text_auto='.2f', color_discrete_sequence=px.colors.qualitative.Safe)
+            st.plotly_chart(fig_qty, use_container_width=True)
+
+        # --- SECTION 4: TABEL DETAIL ---
+        with st.expander
