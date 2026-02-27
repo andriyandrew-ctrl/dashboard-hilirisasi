@@ -4,7 +4,7 @@ import plotly.express as px
 
 # 1. KONFIGURASI HALAMAN
 st.set_page_config(
-    page_title="Hilirisasi Digital Dashboard V4",
+    page_title="Hilirisasi Strategic Dashboard V4.1",
     page_icon="📈",
     layout="wide"
 )
@@ -46,11 +46,9 @@ def load_data():
     file_name = 'Dashboard Hilirisasi V2.xlsx'
     try:
         df = pd.read_excel(file_name, sheet_name='Input Data')
-        # Pastikan kolom numerik benar
         cols = ['TONASE', 'REVENUE', 'GROSS PROFIT']
         for col in cols:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-        # Pastikan kolom waktu terbaca
         df['MONTH'] = pd.to_datetime(df['MONTH'])
         return df
     except Exception as e:
@@ -68,7 +66,7 @@ if not df.empty:
     sel_tahun = st.sidebar.selectbox("Pilih Tahun Analisis", list_tahun)
     df_year = df[df['YEARLY'] == sel_tahun].copy()
 
-    # --- SECTION: TOTAL TAHUNAN (DI BAGIAN ATAS) ---
+    # --- SECTION: TOTAL TAHUNAN ---
     st.subheader(f"📊 Ringkasan Performa Seluruh Tahun {sel_tahun}")
     yt1, yt2, yt3 = st.columns(3)
     
@@ -92,7 +90,7 @@ if not df.empty:
         
         df_month = df_year[df_year['MONTHLY'] == sel_bulan]
 
-        # Row 1: Monthly Metrics
+        # Metrics Bulanan
         m1, m2, m3 = st.columns(3)
         m1.metric("Tonase Bulan Ini", f"{df_month['TONASE'].sum():,.2f} Ton")
         m2.metric("Revenue Bulan Ini", f"Rp {df_month['REVENUE'].sum():,.0f}")
@@ -100,20 +98,19 @@ if not df.empty:
 
         st.markdown("---")
         
-        # Row 2: Top Highlights (Permintaan Baru)
+        # Row Highlights (REVISI: 2 Angka Belakang Koma)
         if not df_month.empty:
             h1, h2 = st.columns(2)
-            # Produk dengan Tonase Tertinggi
             top_qty_row = df_month.loc[df_month['TONASE'].idxmax()]
-            # Produk dengan Profit Tertinggi
             top_profit_row = df_month.loc[df_month['GROSS PROFIT'].idxmax()]
             
             with h1:
+                # Format {:,.2f} untuk 2 angka di belakang koma
                 st.markdown(f"""
                 <div class="highlight-card">
                     <p style="margin:0; font-size:14px; color:gray;">📦 <b>Top Product (By Tonase)</b></p>
                     <p style="margin:0; font-size:20px; color:#1E3A8A;"><b>{top_qty_row['PRODUCT']}</b></p>
-                    <p style="margin:0; font-size:16px;">Volume: {top_qty_row['TONASE']:,} Ton</p>
+                    <p style="margin:0; font-size:16px;">Volume: {top_qty_row['TONASE']:,.2f} Ton</p>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -126,20 +123,18 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
 
-            # Row 3: Bar Charts
+            # Charts
             chart_col1, chart_col2 = st.columns(2)
             with chart_col1:
-                fig_rev = px.bar(df_month.sort_values('REVENUE'), x='REVENUE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Revenue per Produk")
+                fig_rev = px.bar(df_month.sort_values('REVENUE'), x='REVENUE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Revenue per Produk", text_auto='.2s')
                 st.plotly_chart(fig_rev, use_container_width=True)
             with chart_col2:
-                fig_qty = px.bar(df_month.sort_values('TONASE'), x='TONASE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Tonase per Produk")
+                fig_qty = px.bar(df_month.sort_values('TONASE'), x='TONASE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Tonase per Produk", text_auto='.2f')
                 st.plotly_chart(fig_qty, use_container_width=True)
 
     # --- TAB 2: SEMESTER COMPARISON ---
     with tab2:
         st.subheader(f"Analisis Performa Semester - {sel_tahun}")
-        
-        # 1. Persentase Kontribusi
         df_sem = df_year.groupby('SEMESTER')[['TONASE', 'REVENUE', 'GROSS PROFIT']].sum().reset_index()
         total_rev_year = df_sem['REVENUE'].sum()
         
@@ -150,8 +145,6 @@ if not df.empty:
                 st.markdown(f'<div style="text-align:center; padding:10px; border:1px solid #ddd; border-radius:10px;"><b>Kontribusi Revenue {row["SEMESTER"]}</b><br><span style="font-size:30px; color:#1E3A8A;">{pct:.1f}%</span></div>', unsafe_allow_html=True)
 
         st.write("") 
-        
-        # 2. Bar Charts
         s1, s2, s3 = st.columns(3)
         with s1:
             st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='TONASE', color='SEMESTER', title="Tonase (Ton)", text_auto='.2f'), use_container_width=True)
@@ -161,11 +154,8 @@ if not df.empty:
             st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='GROSS PROFIT', color='SEMESTER', title="Profit (Rp)", text_auto='.2s'), use_container_width=True)
 
         st.markdown("---")
-
-        # 3. Line Chart (Timeline Tren)
         st.subheader("📈 Tren Bulanan (Timeline)")
         df_trend = df_year.groupby(['MONTH', 'MONTHLY'])[['TONASE', 'REVENUE', 'GROSS PROFIT']].sum().reset_index().sort_values('MONTH')
-        
         metrik_pilihan = st.radio("Pilih Data Tren:", ["REVENUE", "TONASE", "GROSS PROFIT"], horizontal=True)
         fig_line = px.line(df_trend, x='MONTHLY', y=metrik_pilihan, markers=True, title=f"Tren {metrik_pilihan} - {sel_tahun}")
         fig_line.update_traces(fill='tozeroy')
