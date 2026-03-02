@@ -4,3 +4,10 @@ backgroundColor = "#FFFFFF" # Warna latar belakang
 secondaryBackgroundColor = "#F0F2F6" # Warna sidebar
 textColor = "#262730" # Warna tulisan
 font = "sans serif" # Pilihan: "sans serif", "serif", atau "monospace"
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = false
+
+[browser]
+gatherUsageStats = false
