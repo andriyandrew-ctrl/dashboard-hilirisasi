@@ -9,25 +9,29 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS Sakti untuk menghapus Header, Footer, dan Logo GitHub secara total
+# CSS untuk menghapus Header tetapi tetap memunculkan tombol Sidebar
 st.markdown("""
     <style>
-    /* Menghilangkan Header (Garis atas dan tombol GitHub) */
-    header {visibility: hidden;}
+    /* Menyembunyikan dekorasi header tapi membiarkan tombol sidebar tetap ada */
+    [data-testid="stHeader"] {
+        background: rgba(0,0,0,0);
+        color: rgba(0,0,0,0);
+    }
     
-    /* Menghilangkan Footer (Made with Streamlit) */
+    /* Menghilangkan logo GitHub dan elemen menu kanan saja */
+    header {
+        background-color: rgba(0, 0, 0, 0) !important;
+    }
+    
+    /* Menghilangkan Footer 'Made with Streamlit' */
     footer {visibility: hidden;}
     
-    /* Menghilangkan Menu di pojok kanan (Tiga garis) */
-    #MainMenu {visibility: hidden;}
-    
-    /* Menyesuaikan jarak atas setelah header dihilangkan */
+    /* Menyesuaikan jarak atas agar tidak terlalu kosong */
     .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
+        padding-top: 2rem;
     }
 
-    /* Style untuk Kartu Metrik */
+    /* Style Kartu Metrik & Tab */
     .year-metric {
         background-color: #1E3A8A;
         color: white;
