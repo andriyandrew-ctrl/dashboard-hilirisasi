@@ -14,5 +14,4 @@ gatherUsageStats = false
 
 [sidebar]
 showSidebarNavigation = true
-# Kita biarkan auto agar user bisa buka/tutup dengan normal
-state = "auto"
+state = "expanded"
