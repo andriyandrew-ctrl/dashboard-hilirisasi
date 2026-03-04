@@ -11,3 +11,6 @@ showErrorDetails = false
 
 [browser]
 gatherUsageStats = false
+
+[sidebar]
+state = "expanded"
