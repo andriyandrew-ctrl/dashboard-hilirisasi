@@ -4,27 +4,31 @@ import pandas as pd
 # 1. SETUP IDENTITAS & TOTAL PRIVACY STYLE
 st.set_page_config(page_title="R&D Riset Kapal ITS", layout="wide", page_icon="🚢")
 
-# CSS AGRESIF UNTUK MENYEMBUNYIKAN SEMUA BRANDING
-hide_all_branding = """
+# CSS UNTUK MENGHAPUS SEMUA JEJAK PROFIL, GITHUB, DAN BRANDING
+hide_full_branding = """
     <style>
-    /* Menyembunyikan Header & Logo GitHub/Akun di kanan atas */
-    header {visibility: hidden !important;}
+    /* Menghilangkan Header (Logo GitHub & Tombol Deploy) */
+    header {visibility: hidden !important; height: 0px !important;}
+    
+    /* Menghilangkan Menu Hamburger (Tiga Garis) */
     #MainMenu {visibility: hidden !important;}
     
-    /* Menyembunyikan Footer 'Made with Streamlit' di bawah */
+    /* Menghilangkan Footer 'Made with Streamlit' */
     footer {visibility: hidden !important;}
     
-    /* Menyembunyikan Badge Streamlit Cloud di pojok kanan bawah secara paksa */
-    .stAppDeployButton {display: none !important;}
+    /* Menghilangkan Badge Profil Akun di pojok kanan bawah secara paksa */
     [data-testid="stStatusWidget"] {display: none !important;}
+    .stAppDeployButton {display: none !important;}
     div[class^="viewerBadge"] {display: none !important;}
-    div[class*="viewerBadge"] {display: none !important;}
     
-    /* Menghilangkan spasi kosong di atas akibat header disembunyikan */
+    /* Menghilangkan overlay 'Manage App' bagi pengunjung */
+    div[data-testid="stDecoration"] {display: none !important;}
+    
+    /* Merapikan posisi konten agar tidak ada celah di atas */
     .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
     </style>
 """
-st.markdown(hide_all_branding, unsafe_allow_html=True)
+st.markdown(hide_full_branding, unsafe_allow_html=True)
 
 SHEET_ID = '1-FhaAsVlrYUnn0tbC-ccwMMZIS7RKZ57lDho5yLBtI8'
 
@@ -39,7 +43,7 @@ def read_sheet(sheet_name):
     except:
         return pd.DataFrame()
 
-# Fungsi format angka (Hanya Titik, Tanpa Rp, Tanpa Desimal)
+# Fungsi format angka (Titik, Tanpa desimal, Tanpa Rp)
 def fmt_titik(val):
     try:
         if pd.isna(val) or val == '': return "0"
@@ -58,8 +62,7 @@ if menu == "📸 Koleksi Foto":
     if not df_foto.empty:
         list_bulan = sorted(df_foto['Bulan'].unique().tolist(), key=lambda x: (x < 11, x))
         def lbl(b): return f"{ {11:'Nov', 12:'Des', 2:'Feb'}.get(b, b) } {2025 if b>=11 else 2026}"
-        bln = st.sidebar.select_slider("Pilih Periode:", options=list_bulan, format_func=lbl)
-        
+        bln = st.radio("Pilih Periode:", list_bulan, format_func=lbl, horizontal=True)
         f_df = df_foto[df_foto['Bulan'] == bln].sort_values(by='Tanggal')
         cols = st.columns(3)
         for i, (_, r) in enumerate(f_df.iterrows()):
