@@ -9,38 +9,30 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- 2. CSS CUSTOM (SOLUSI SIDEBAR & HAPUS GITHUB) ---
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+st.set_page_config(page_title="Hilirisasi Dashboard", layout="wide")
+
+# CSS KHUSUS: Hapus GitHub tapi Amankan Sidebar
 st.markdown("""
     <style>
-    /* Menghilangkan dekorasi warna di bagian paling atas */
-    header {
+    /* 1. Menghilangkan tombol GitHub, bantuan, dan menu tiga titik di pojok kanan */
+    /* Namun membiarkan header tetap 'ada' agar tombol sidebar tidak hilang */
+    [data-testid="stHeader"] {
         background-color: rgba(0,0,0,0) !important;
     }
-
-    /* Menghilangkan Logo GitHub dan Menu (Tiga Titik) secara spesifik */
-    /* Namun tetap membiarkan area tombol Sidebar bisa diklik */
-    [data-testid="stHeader"] > div:first-child {
-        visibility: hidden !important;
+    
+    /* Target khusus elemen kanan header untuk dihilangkan */
+    [data-testid="stHeader"] [data-testid="stToolbar"] {
+        display: none !important;
     }
+    
+    /* 2. Menghilangkan Footer */
+    footer {visibility: hidden;}
 
-    /* Memastikan tombol Sidebar (panah >) tetap terlihat dan berwarna agar mudah ditemukan */
-    [data-testid="collapsedControl"] {
-        visibility: visible !important;
-        background-color: #f0f2f6 !important;
-        border-radius: 0 10px 10px 0 !important;
-        width: 40px !important;
-        height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        left: 0 !important;
-        top: 0 !important;
-    }
-
-    /* Menghilangkan Footer 'Made with Streamlit' */
-    footer {visibility: hidden !important;}
-
-    /* Style Kartu Metrik & Highlight */
+    /* 3. Style Kartu & Desain Dashboard */
     .year-metric {
         background-color: #1E3A8A;
         color: white;
@@ -62,6 +54,8 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+# ... Sisa kode load data dan visualisasi tetap sama seperti sebelumnya ...
 
 # --- 3. FUNGSI LOAD DATA ---
 @st.cache_data
