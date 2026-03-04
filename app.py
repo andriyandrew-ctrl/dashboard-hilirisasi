@@ -9,30 +9,37 @@ st.set_page_config(
     layout="wide"
 )
 
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-
-st.set_page_config(page_title="Hilirisasi Dashboard", layout="wide")
-
-# CSS KHUSUS: Hapus GitHub tapi Amankan Sidebar
+# --- 2. CSS SAKTI (Hanya Hapus Elemen Kanan, Sidebar Tetap Aman) ---
 st.markdown("""
     <style>
-    /* 1. Menghilangkan tombol GitHub, bantuan, dan menu tiga titik di pojok kanan */
-    /* Namun membiarkan header tetap 'ada' agar tombol sidebar tidak hilang */
-    [data-testid="stHeader"] {
-        background-color: rgba(0,0,0,0) !important;
-    }
-    
-    /* Target khusus elemen kanan header untuk dihilangkan */
-    [data-testid="stHeader"] [data-testid="stToolbar"] {
+    /* Menghilangkan tombol bantuan (?) di pojok kanan */
+    [data-testid="stActionButtonIcon"] {
         display: none !important;
     }
     
-    /* 2. Menghilangkan Footer */
-    footer {visibility: hidden;}
+    /* Menghilangkan Menu Tiga Titik & Logo GitHub/Toolbar di pojok kanan */
+    #MainMenu, .stAppDeployButton, header [data-testid="stHeader"] .stToolbar {
+        display: none !important;
+    }
+    
+    /* Menghilangkan semua elemen di kanan header secara paksa */
+    [data-testid="stHeader"] > div:nth-child(2) {
+        display: none !important;
+    }
 
-    /* 3. Style Kartu & Desain Dashboard */
+    /* Menghilangkan Footer 'Made with Streamlit' */
+    footer {visibility: hidden !important;}
+
+    /* MEMASTIKAN TOMBOL SIDEBAR TETAP ADA & WARNANYA KONTRAS */
+    /* Kita beri warna biru agar terlihat jelas di pojok kiri atas */
+    [data-testid="collapsedControl"] {
+        background-color: #1E3A8A !important;
+        color: white !important;
+        border-radius: 0 10px 10px 0 !important;
+        padding: 5px !important;
+    }
+
+    /* Style Kartu Metrik & UI Dashboard */
     .year-metric {
         background-color: #1E3A8A;
         color: white;
@@ -46,16 +53,9 @@ st.markdown("""
         padding: 15px;
         border-left: 5px solid #1E3A8A;
         border-radius: 5px;
-        margin-bottom: 10px;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1E3A8A !important;
-        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
-
-# ... Sisa kode load data dan visualisasi tetap sama seperti sebelumnya ...
 
 # --- 3. FUNGSI LOAD DATA ---
 @st.cache_data
@@ -79,7 +79,7 @@ if not df.empty:
     # --- SIDEBAR ---
     st.sidebar.header("⚙️ Global Filter")
     list_tahun = sorted(df['YEARLY'].unique(), reverse=True)
-    sel_tahun = st.sidebar.selectbox("Pilih Tahun", list_tahun)
+    sel_tahun = st.sidebar.selectbox("Pilih Tahun Analisis", list_tahun)
     df_year = df[df['YEARLY'] == sel_tahun].copy()
 
     # --- RINGKASAN TAHUNAN ---
@@ -92,7 +92,7 @@ if not df.empty:
     tab1, tab2 = st.tabs(["📅 Monthly Report", "🌓 Semester Comparison"])
 
     with tab1:
-        st.subheader("Laporan Bulanan")
+        st.subheader("Laporan Detail Bulanan")
         list_bulan = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
         available_months = df_year['MONTHLY'].unique()
         sel_bulan = st.selectbox("Pilih Bulan", [m for m in list_bulan if m in available_months])
@@ -106,22 +106,22 @@ if not df.empty:
 
             st.markdown("---")
             h1, h2 = st.columns(2)
-            top_qty = df_month.loc[df_month['TONASE'].idxmax()]
-            top_profit = df_month.loc[df_month['GROSS PROFIT'].idxmax()]
+            top_qty_row = df_month.loc[df_month['TONASE'].idxmax()]
+            top_profit_row = df_month.loc[df_month['GROSS PROFIT'].idxmax()]
             
-            h1.markdown(f'<div class="highlight-card"><b>📦 Top Product (Tonase)</b><br>{top_qty["PRODUCT"]}<br>{top_qty["TONASE"]:,.2f} Ton</div>', unsafe_allow_html=True)
-            h2.markdown(f'<div class="highlight-card"><b>💰 Top Profit (Product)</b><br>{top_profit["PRODUCT"]}<br>Rp {top_profit["GROSS PROFIT"]:,.0f}</div>', unsafe_allow_html=True)
+            h1.markdown(f'<div class="highlight-card"><b>📦 Top Product (Tonase)</b><br>{top_qty_row["PRODUCT"]}<br>{top_qty_row["TONASE"]:,.2f} Ton</div>', unsafe_allow_html=True)
+            h2.markdown(f'<div class="highlight-card"><b>💰 Top Profit (Product)</b><br>{top_profit_row["PRODUCT"]}<br>Rp {top_profit_row["GROSS PROFIT"]:,.0f}</div>', unsafe_allow_html=True)
 
             c1, c2 = st.columns(2)
             with c1: st.plotly_chart(px.bar(df_month.sort_values('REVENUE'), x='REVENUE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Revenue per Produk"), use_container_width=True)
             with c2: st.plotly_chart(px.bar(df_month.sort_values('TONASE'), x='TONASE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Tonase per Produk"), use_container_width=True)
 
     with tab2:
-        st.subheader(f"Analisis Semester {sel_tahun}")
+        st.subheader(f"Analisis Performa Semester - {sel_tahun}")
         df_sem = df_year.groupby('SEMESTER')[['TONASE', 'REVENUE', 'GROSS PROFIT']].sum().reset_index()
         s1, s2, s3 = st.columns(3)
-        with s1: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='TONASE', color='SEMESTER', title="Tonase"), use_container_width=True)
-        with s2: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='REVENUE', color='SEMESTER', title="Revenue"), use_container_width=True)
-        with s3: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='GROSS PROFIT', color='SEMESTER', title="Profit"), use_container_width=True)
+        with s1: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='TONASE', color='SEMESTER', title="Tonase (Ton)"), use_container_width=True)
+        with s2: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='REVENUE', color='SEMESTER', title="Revenue (Rp)"), use_container_width=True)
+        with s3: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='GROSS PROFIT', color='SEMESTER', title="Profit (Rp)"), use_container_width=True)
 else:
     st.error("Data tidak ditemukan.")
