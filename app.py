@@ -9,37 +9,37 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- 2. CSS SAKTI (Hanya Hapus Elemen Kanan, Sidebar Tetap Aman) ---
+# --- CSS SAPU BERSIH: Hapus GitHub/Deploy, Amankan Sidebar ---
 st.markdown("""
     <style>
-    /* Menghilangkan tombol bantuan (?) di pojok kanan */
-    [data-testid="stActionButtonIcon"] {
-        display: none !important;
-    }
-    
-    /* Menghilangkan Menu Tiga Titik & Logo GitHub/Toolbar di pojok kanan */
-    #MainMenu, .stAppDeployButton, header [data-testid="stHeader"] .stToolbar {
-        display: none !important;
-    }
-    
-    /* Menghilangkan semua elemen di kanan header secara paksa */
-    [data-testid="stHeader"] > div:nth-child(2) {
+    /* 1. Menghilangkan tombol Deploy di pojok kanan */
+    .stAppDeployButton {
         display: none !important;
     }
 
-    /* Menghilangkan Footer 'Made with Streamlit' */
-    footer {visibility: hidden !important;}
+    /* 2. Menghilangkan Toolbar (Bantuan, GitHub, Menu Tiga Titik) */
+    /* Kita targetkan secara paksa agar tidak ada celah bagi logo GitHub */
+    [data-testid="stHeader"] .stToolbar, 
+    [data-testid="stHeader"] [data-testid="stActionButtonIcon"],
+    #MainMenu {
+        display: none !important;
+        visibility: hidden !important;
+    }
 
-    /* MEMASTIKAN TOMBOL SIDEBAR TETAP ADA & WARNANYA KONTRAS */
-    /* Kita beri warna biru agar terlihat jelas di pojok kiri atas */
+    /* 3. Menghilangkan Footer 'Made with Streamlit' */
+    footer {
+        visibility: hidden !important;
+    }
+
+    /* 4. MEMASTIKAN TOMBOL SIDEBAR TETAP ADA */
+    /* Kita beri warna biru agar terlihat jelas saat sidebar tertutup */
     [data-testid="collapsedControl"] {
         background-color: #1E3A8A !important;
         color: white !important;
         border-radius: 0 10px 10px 0 !important;
-        padding: 5px !important;
     }
 
-    /* Style Kartu Metrik & UI Dashboard */
+    /* --- Style Visual Dashboard --- */
     .year-metric {
         background-color: #1E3A8A;
         color: white;
