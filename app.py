@@ -1,28 +1,30 @@
 import streamlit as st
 import pandas as pd
 
-# 1. SETUP IDENTITAS & STYLE (Menyembunyikan Header, Footer, Menu, dan GitHub)
+# 1. SETUP IDENTITAS & TOTAL PRIVACY STYLE
 st.set_page_config(page_title="R&D Riset Kapal ITS", layout="wide", page_icon="🚢")
 
-hide_style = """
+# CSS AGRESIF UNTUK MENYEMBUNYIKAN SEMUA BRANDING
+hide_all_branding = """
     <style>
-    /* Menyembunyikan logo GitHub di pojok kanan atas */
-    .viewerBadge_container__1QS1n {display: none !important;}
-    
-    /* Menyembunyikan tulisan Made with Streamlit di pojok kanan bawah */
-    footer {visibility: hidden !important;}
-    
-    /* Menyembunyikan Header (garis warna di atas) */
+    /* Menyembunyikan Header & Logo GitHub/Akun di kanan atas */
     header {visibility: hidden !important;}
-    
-    /* Menyembunyikan Menu Hamburger (tiga garis) */
     #MainMenu {visibility: hidden !important;}
     
-    /* Tambahan: memastikan tidak ada margin sisa di atas */
-    .block-container {padding-top: 2rem !important;}
+    /* Menyembunyikan Footer 'Made with Streamlit' di bawah */
+    footer {visibility: hidden !important;}
+    
+    /* Menyembunyikan Badge Streamlit Cloud di pojok kanan bawah secara paksa */
+    .stAppDeployButton {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    div[class^="viewerBadge"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    
+    /* Menghilangkan spasi kosong di atas akibat header disembunyikan */
+    .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
     </style>
 """
-st.markdown(hide_style, unsafe_allow_html=True)
+st.markdown(hide_all_branding, unsafe_allow_html=True)
 
 SHEET_ID = '1-FhaAsVlrYUnn0tbC-ccwMMZIS7RKZ57lDho5yLBtI8'
 
@@ -37,10 +39,10 @@ def read_sheet(sheet_name):
     except:
         return pd.DataFrame()
 
-# Fungsi format angka tanpa digit desimal dan tanpa simbol Rp (hanya titik ribuan)
+# Fungsi format angka (Hanya Titik, Tanpa Rp, Tanpa Desimal)
 def fmt_titik(val):
     try:
-        # Menggunakan format integer untuk memastikan tidak ada .0 di belakang
+        if pd.isna(val) or val == '': return "0"
         return f"{int(float(val)):,}".replace(',', '.')
     except:
         return str(val)
@@ -56,7 +58,8 @@ if menu == "📸 Koleksi Foto":
     if not df_foto.empty:
         list_bulan = sorted(df_foto['Bulan'].unique().tolist(), key=lambda x: (x < 11, x))
         def lbl(b): return f"{ {11:'Nov', 12:'Des', 2:'Feb'}.get(b, b) } {2025 if b>=11 else 2026}"
-        bln = st.radio("Pilih Periode:", list_bulan, format_func=lbl, horizontal=True)
+        bln = st.sidebar.select_slider("Pilih Periode:", options=list_bulan, format_func=lbl)
+        
         f_df = df_foto[df_foto['Bulan'] == bln].sort_values(by='Tanggal')
         cols = st.columns(3)
         for i, (_, r) in enumerate(f_df.iterrows()):
@@ -69,26 +72,19 @@ elif menu == "💰 Estimasi Biaya":
     st.title("💰 Estimasi Kebutuhan & Biaya")
     df_raw = read_sheet('Estimasi Biaya')
     if not df_raw.empty:
-        # Filter baris yang kolom 'No' ada angkanya
         df_clean = df_raw[pd.to_numeric(df_raw['No'], errors='coerce').notnull()].copy()
-        
         c_s, c_t = 'Harga Satuan (Rp)', 'Total Harga (Rp)'
-        
-        # Konversi ke numerik murni agar tidak ada kesalahan kalkulasi
         df_clean[c_s] = pd.to_numeric(df_clean[c_s], errors='coerce').fillna(0)
         df_clean[c_t] = pd.to_numeric(df_clean[c_t], errors='coerce').fillna(0)
 
-        st.markdown("### 🔍 Filter Kategori")
         kat = ["Semua"] + sorted(df_clean['Kategori'].unique().tolist())
-        pilih = st.selectbox("Pilih Kategori:", kat)
+        pilih = st.selectbox("Filter Kategori:", kat)
         df_f = df_clean if pilih == "Semua" else df_clean[df_clean['Kategori'] == pilih]
 
-        # Metric Headline dengan Rp
         m1, m2 = st.columns(2)
         m1.metric("Grand Total Anggaran", f"Rp {fmt_titik(df_clean[c_t].sum())}")
         m2.metric(f"Total {pilih}", f"Rp {fmt_titik(df_f[c_t].sum())}")
         
-        # Tampilan Tabel (Hanya angka dengan titik ribuan)
         df_disp = df_f.copy()
         df_disp[c_s] = df_disp[c_s].apply(fmt_titik)
         df_disp[c_t] = df_disp[c_t].apply(fmt_titik)
