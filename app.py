@@ -1,106 +1,154 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
-# 1. SETUP IDENTITAS & TOTAL PRIVACY STYLE
-st.set_page_config(page_title="R&D Riset Kapal ITS", layout="wide", page_icon="🚢")
+# --- 1. KONFIGURASI HALAMAN ---
+st.set_page_config(
+    page_title="Hilirisasi Strategic Dashboard",
+    page_icon="📈",
+    layout="wide"
+)
 
-# CSS UNTUK MENGHAPUS SEMUA JEJAK PROFIL, GITHUB, DAN BRANDING
-hide_full_branding = """
+# CSS untuk menghilangkan Header Streamlit (Logo GitHub, Menu, Footer)
+# Serta mempercantik desain kartu metrik
+st.markdown("""
     <style>
-    /* Menghilangkan Header (Logo GitHub & Tombol Deploy) */
-    header {visibility: hidden !important; height: 0px !important;}
-    
-    /* Menghilangkan Menu Hamburger (Tiga Garis) */
-    #MainMenu {visibility: hidden !important;}
-    
-    /* Menghilangkan Footer 'Made with Streamlit' */
-    footer {visibility: hidden !important;}
-    
-    /* Menghilangkan Badge Profil Akun di pojok kanan bawah secara paksa */
-    [data-testid="stStatusWidget"] {display: none !important;}
-    .stAppDeployButton {display: none !important;}
-    div[class^="viewerBadge"] {display: none !important;}
-    
-    /* Menghilangkan overlay 'Manage App' bagi pengunjung */
-    div[data-testid="stDecoration"] {display: none !important;}
-    
-    /* Merapikan posisi konten agar tidak ada celah di atas */
-    .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .block-container {padding-top: 2rem;}
+    .year-metric {
+        background-color: #1E3A8A;
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .highlight-card {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-left: 5px solid #1E3A8A;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #1E3A8A !important;
+        color: white !important;
+    }
     </style>
-"""
-st.markdown(hide_full_branding, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-SHEET_ID = '1-FhaAsVlrYUnn0tbC-ccwMMZIS7RKZ57lDho5yLBtI8'
-
-@st.cache_data(ttl=5)
-def read_sheet(sheet_name):
+# --- 2. FUNGSI LOAD DATA ---
+@st.cache_data
+def load_data():
+    file_name = 'Dashboard Hilirisasi V2.xlsx'
     try:
-        sn_url = sheet_name.replace(" ", "%20")
-        url = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sn_url}'
-        df = pd.read_csv(url)
-        df.columns = [" ".join(str(c).split()) for c in df.columns]
-        return df.dropna(axis=1, how='all')
-    except:
+        df = pd.read_excel(file_name, sheet_name='Input Data')
+        # Pastikan kolom numerik benar
+        for col in ['TONASE', 'REVENUE', 'GROSS PROFIT']:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        # Pastikan kolom waktu terbaca
+        df['MONTH'] = pd.to_datetime(df['MONTH'])
+        return df
+    except Exception as e:
+        st.error(f"Gagal memuat file Excel: {e}")
         return pd.DataFrame()
 
-# Fungsi format angka (Titik, Tanpa desimal, Tanpa Rp)
-def fmt_titik(val):
-    try:
-        if pd.isna(val) or val == '': return "0"
-        return f"{int(float(val)):,}".replace(',', '.')
-    except:
-        return str(val)
+df = load_data()
 
-# SIDEBAR
-st.sidebar.title("⚓ R&D Dashboard")
-menu = st.sidebar.radio("Pilih Menu:", ["📸 Koleksi Foto", "💰 Estimasi Biaya", "📁 Dokumen Penting"])
+if not df.empty:
+    st.title("🚀 Hilirisasi Strategic Dashboard")
+    
+    # --- SIDEBAR FILTER TAHUN ---
+    st.sidebar.header("⚙️ Global Filter")
+    list_tahun = sorted(df['YEARLY'].unique(), reverse=True)
+    sel_tahun = st.sidebar.selectbox("Pilih Tahun Analisis", list_tahun)
+    df_year = df[df['YEARLY'] == sel_tahun].copy()
 
-# --- MENU 1: KOLEKSI FOTO ---
-if menu == "📸 Koleksi Foto":
-    st.title("📸 Koleksi Foto Kegiatan")
-    df_foto = read_sheet('Foto Kegiatan')
-    if not df_foto.empty:
-        list_bulan = sorted(df_foto['Bulan'].unique().tolist(), key=lambda x: (x < 11, x))
-        def lbl(b): return f"{ {11:'Nov', 12:'Des', 2:'Feb'}.get(b, b) } {2025 if b>=11 else 2026}"
-        bln = st.radio("Pilih Periode:", list_bulan, format_func=lbl, horizontal=True)
-        f_df = df_foto[df_foto['Bulan'] == bln].sort_values(by='Tanggal')
-        cols = st.columns(3)
-        for i, (_, r) in enumerate(f_df.iterrows()):
-            with cols[i % 3]:
-                st.markdown(f"### 🗓️ Tanggal {int(r['Tanggal'])}")
-                st.link_button("📂 Buka Folder", str(r['Link Folder Gdrive']).strip().rstrip(','))
+    # --- SECTION: TOTAL TAHUNAN ---
+    st.subheader(f"📊 Ringkasan Performa Seluruh Tahun {sel_tahun}")
+    yt1, yt2, yt3 = st.columns(3)
+    
+    yt1.markdown(f'<div class="year-metric"><b>TOTAL TONASE TAHUNAN</b><br><span style="font-size:24px;">{df_year["TONASE"].sum():,.2f} Ton</span></div>', unsafe_allow_html=True)
+    yt2.markdown(f'<div class="year-metric"><b>TOTAL REVENUE TAHUNAN</b><br><span style="font-size:24px;">Rp {df_year["REVENUE"].sum():,.0f}</span></div>', unsafe_allow_html=True)
+    yt3.markdown(f'<div class="year-metric"><b>TOTAL PROFIT TAHUNAN</b><br><span style="font-size:24px;">Rp {df_year["GROSS PROFIT"].sum():,.0f}</span></div>', unsafe_allow_html=True)
 
-# --- MENU 2: ESTIMASI BIAYA ---
-elif menu == "💰 Estimasi Biaya":
-    st.title("💰 Estimasi Kebutuhan & Biaya")
-    df_raw = read_sheet('Estimasi Biaya')
-    if not df_raw.empty:
-        df_clean = df_raw[pd.to_numeric(df_raw['No'], errors='coerce').notnull()].copy()
-        c_s, c_t = 'Harga Satuan (Rp)', 'Total Harga (Rp)'
-        df_clean[c_s] = pd.to_numeric(df_clean[c_s], errors='coerce').fillna(0)
-        df_clean[c_t] = pd.to_numeric(df_clean[c_t], errors='coerce').fillna(0)
+    # --- MEMBUAT TAB ---
+    tab1, tab2 = st.tabs(["📅 Monthly Report", "🌓 Semester Comparison"])
 
-        kat = ["Semua"] + sorted(df_clean['Kategori'].unique().tolist())
-        pilih = st.selectbox("Filter Kategori:", kat)
-        df_f = df_clean if pilih == "Semua" else df_clean[df_clean['Kategori'] == pilih]
-
-        m1, m2 = st.columns(2)
-        m1.metric("Grand Total Anggaran", f"Rp {fmt_titik(df_clean[c_t].sum())}")
-        m2.metric(f"Total {pilih}", f"Rp {fmt_titik(df_f[c_t].sum())}")
+    # --- TAB 1: MONTHLY REPORT ---
+    with tab1:
+        st.subheader("Laporan Detail Bulanan")
+        list_bulan = ["January", "February", "March", "April", "May", "June", 
+                      "July", "August", "September", "October", "November", "December"]
+        available_months = df_year['MONTHLY'].unique()
+        sel_bulan = st.selectbox("Pilih Bulan", [m for m in list_bulan if m in available_months])
         
-        df_disp = df_f.copy()
-        df_disp[c_s] = df_disp[c_s].apply(fmt_titik)
-        df_disp[c_t] = df_disp[c_t].apply(fmt_titik)
-        
-        cols_show = ['No', 'Kategori', 'Nama Barang', 'Merk/Ukuran', 'Type/ Spesifikasi', 'Total Pemakaian', 'Satuan', c_s, c_t]
-        st.dataframe(df_disp[[c for c in cols_show if c in df_disp.columns]], use_container_width=True, hide_index=True)
+        df_month = df_year[df_year['MONTHLY'] == sel_bulan]
 
-# --- MENU 3: DOKUMEN PENTING ---
-elif menu == "📁 Dokumen Penting":
-    st.title("📁 Dokumen Penting")
-    df_d = read_sheet('Dokumen Penting')
-    if not df_d.empty:
-        for _, r in df_d.iterrows():
-            with st.expander(f"📄 {r['Nama Dokumen']}"):
-                st.write(f"Kegiatan: {r['Kegiatan']}")
-                st.link_button("Buka Link", str(r['Link Unduh']))
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Tonase Bulan Ini", f"{df_month['TONASE'].sum():,.2f} Ton")
+        m2.metric("Revenue Bulan Ini", f"Rp {df_month['REVENUE'].sum():,.0f}")
+        m3.metric("Profit Bulan Ini", f"Rp {df_month['GROSS PROFIT'].sum():,.0f}")
+
+        st.markdown("---")
+        
+        if not df_month.empty:
+            h1, h2 = st.columns(2)
+            top_qty_row = df_month.loc[df_month['TONASE'].idxmax()]
+            top_profit_row = df_month.loc[df_month['GROSS PROFIT'].idxmax()]
+            
+            with h1:
+                st.markdown(f"""
+                <div class="highlight-card">
+                    <p style="margin:0; font-size:14px; color:gray;">📦 <b>Top Product (By Tonase)</b></p>
+                    <p style="margin:0; font-size:20px; color:#1E3A8A;"><b>{top_qty_row['PRODUCT']}</b></p>
+                    <p style="margin:0; font-size:16px;">Volume: {top_qty_row['TONASE']:,.2f} Ton</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with h2:
+                st.markdown(f"""
+                <div class="highlight-card">
+                    <p style="margin:0; font-size:14px; color:gray;">💰 <b>Top Profit (By Product)</b></p>
+                    <p style="margin:0; font-size:20px; color:#10B981;"><b>{top_profit_row['PRODUCT']}</b></p>
+                    <p style="margin:0; font-size:16px;">Profit: Rp {top_profit_row['GROSS PROFIT']:,.0f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            chart_col1, chart_col2 = st.columns(2)
+            with chart_col1:
+                fig_rev = px.bar(df_month.sort_values('REVENUE'), x='REVENUE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Revenue per Produk", text_auto='.2s')
+                st.plotly_chart(fig_rev, use_container_width=True)
+            with chart_col2:
+                fig_qty = px.bar(df_month.sort_values('TONASE'), x='TONASE', y='PRODUCT', color='SUBSIDIARY', orientation='h', title="Tonase per Produk", text_auto='.2f')
+                st.plotly_chart(fig_qty, use_container_width=True)
+
+    # --- TAB 2: SEMESTER COMPARISON ---
+    with tab2:
+        st.subheader(f"Analisis Performa Semester - {sel_tahun}")
+        df_sem = df_year.groupby('SEMESTER')[['TONASE', 'REVENUE', 'GROSS PROFIT']].sum().reset_index()
+        total_rev_year = df_sem['REVENUE'].sum()
+        
+        p1, p2 = st.columns(2)
+        for i, row in df_sem.iterrows():
+            pct = (row['REVENUE'] / total_rev_year * 100) if total_rev_year > 0 else 0
+            with (p1 if row['SEMESTER'] == 'SMT-1' else p2):
+                st.markdown(f'<div style="text-align:center; padding:10px; border:1px solid #ddd; border-radius:10px;"><b>Kontribusi Revenue {row["SEMESTER"]}</b><br><span style="font-size:30px; color:#1E3A8A;">{pct:.1f}%</span></div>', unsafe_allow_html=True)
+
+        st.write("") 
+        s1, s2, s3 = st.columns(3)
+        with s1: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='TONASE', color='SEMESTER', title="Tonase (Ton)", text_auto='.2f'), use_container_width=True)
+        with s2: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='REVENUE', color='SEMESTER', title="Revenue (Rp)", text_auto='.2s'), use_container_width=True)
+        with s3: st.plotly_chart(px.bar(df_sem, x='SEMESTER', y='GROSS PROFIT', color='SEMESTER', title="Profit (Rp)", text_auto='.2s'), use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("📈 Tren Bulanan (Timeline)")
+        df_trend = df_year.groupby(['MONTH', 'MONTHLY'])[['TONASE', 'REVENUE', 'GROSS PROFIT']].sum().reset_index().sort_values('MONTH')
+        metrik_pilihan = st.radio("Pilih Data Tren:", ["REVENUE", "TONASE", "GROSS PROFIT"], horizontal=True)
+        fig_line = px.line(df_trend, x='MONTHLY', y=metrik_pilihan, markers=True, title=f"Tren {metrik_pilihan}")
+        fig_line.update_traces(fill='tozeroy')
+        st.plotly_chart(fig_line, use_container_width=True)
+else:
+    st.error("Data tidak ditemukan.")
