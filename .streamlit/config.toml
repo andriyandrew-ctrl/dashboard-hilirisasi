@@ -1,9 +1,9 @@
 [theme]
-primaryColor = "#FF4B4B" # Warna tombol & garis
-backgroundColor = "#FFFFFF" # Warna latar belakang
-secondaryBackgroundColor = "#F0F2F6" # Warna sidebar
-textColor = "#262730" # Warna tulisan
-font = "sans serif" # Pilihan: "sans serif", "serif", atau "monospace"
+primaryColor = "#FF4B4B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"
 
 [client]
 toolbarMode = "minimal"
@@ -13,4 +13,6 @@ showErrorDetails = false
 gatherUsageStats = false
 
 [sidebar]
-state = "expanded"
+showSidebarNavigation = true
+# Kita biarkan auto agar user bisa buka/tutup dengan normal
+state = "auto"
