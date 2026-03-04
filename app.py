@@ -9,29 +9,40 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS untuk menghapus Header tetapi tetap memunculkan tombol Sidebar
+# CSS Final untuk menghapus Logo GitHub dan Header secara total
 st.markdown("""
     <style>
-    /* Menyembunyikan dekorasi header tapi membiarkan tombol sidebar tetap ada */
+    /* 1. Menghilangkan logo GitHub dan menu kanan (iklan/source code) secara total */
     [data-testid="stHeader"] {
-        background: rgba(0,0,0,0);
-        color: rgba(0,0,0,0);
+        background: rgba(0,0,0,0) !important;
+        color: rgba(0,0,0,0) !important;
     }
     
-    /* Menghilangkan logo GitHub dan elemen menu kanan saja */
+    /* 2. Menghilangkan dekorasi garis merah/hitam di paling atas */
     header {
-        background-color: rgba(0, 0, 0, 0) !important;
-    }
-    
-    /* Menghilangkan Footer 'Made with Streamlit' */
-    footer {visibility: hidden;}
-    
-    /* Menyesuaikan jarak atas agar tidak terlalu kosong */
-    .block-container {
-        padding-top: 2rem;
+        display: none !important;
     }
 
-    /* Style Kartu Metrik & Tab */
+    /* 3. Memastikan tombol Sidebar (panah) tetap terlihat dan bisa diklik */
+    /* Ini solusi agar sidebar tidak hilang selamanya saat ditutup */
+    [data-testid="collapsedControl"] {
+        top: 10px !important;
+        left: 10px !important;
+        background-color: #f0f2f6 !important; /* Warna latar tombol panah agar terlihat */
+        border-radius: 50% !important;
+        padding: 5px !important;
+        z-index: 999999 !important;
+    }
+
+    /* 4. Menghilangkan Footer 'Made with Streamlit' */
+    footer {visibility: hidden !important;}
+
+    /* 5. Jarak konten agar tidak terlalu mepet ke atas */
+    .block-container {
+        padding-top: 3rem !important;
+    }
+
+    /* Style tambahan untuk kartu metrik agar tetap cantik */
     .year-metric {
         background-color: #1E3A8A;
         color: white;
@@ -45,11 +56,6 @@ st.markdown("""
         padding: 15px;
         border-left: 5px solid #1E3A8A;
         border-radius: 5px;
-        margin-bottom: 10px;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1E3A8A !important;
-        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
